@@ -1,235 +1,332 @@
-# 🦴 Bone Fracture Detection
+# 🦴 Bone Fracture X-Ray Detection — MLOps Capstone
 
-> **Binary classification of bone fractures from X-ray images using iterative deep learning.**
+> **ITCS355 — Machine Learning Operation and Deployment**
+> Binary classification of bone fractures from X-ray images, shipped end-to-end with full operational infrastructure.
 
-[![Python](https://img.shields.io/badge/Python-3.9+-blue?logo=python)](https://python.org)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue?logo=python)](https://python.org)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.1+-EE4C2C?logo=pytorch)](https://pytorch.org)
-[![TensorBoard](https://img.shields.io/badge/TensorBoard-monitoring-orange)](https://www.tensorflow.org/tensorboard)
-[![Gradio](https://img.shields.io/badge/Gradio-3.50-blueviolet)](https://gradio.app)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi)](https://fastapi.tiangolo.com)
+[![MLflow](https://img.shields.io/badge/MLflow-2.10+-0194E2?logo=mlflow)](https://mlflow.org)
+[![GCP](https://img.shields.io/badge/GCP-Cloud%20Run-4285F4?logo=google-cloud)](https://cloud.google.com)
 
 ---
 
 ## 📌 Problem Statement
 
-Bone fractures are among the most common musculoskeletal injuries worldwide. Manual X-ray reading is time-consuming and error-prone, especially under high workload. This project develops an AI-assisted tool to automatically detect fractures from X-ray images — targeting fast, reliable support for clinical decision-making.
+Bone fractures are among the most common musculoskeletal injuries in emergency departments. Manual X-ray reading under high workload is time-consuming and error-prone — missed fractures (false negatives) lead to delayed treatment.
 
-**Impact**: Reduce diagnostic delays, lower false-negative rate, assist radiologists in high-volume settings.
+This project ships an **AI-assisted triage service** end-to-end: from training pipeline to production FastAPI endpoint with monitoring, drift detection, and engineered failure handling. **Model accuracy carries no marks** — the grade is on the operational system.
+
+---
+
+## 🏗️ Architecture
+
+```
+Three-Layer Contract (ITCS355):
+
+src/           Layer 1 — provider-neutral ML code (no cloud SDK imports)
+cloudlayer/    Layer 2 — GCP adapter (only place cloud SDKs appear)
+service/       Layer 3 — FastAPI inference service
+monitoring/    Drift detection, alerts, metrics dashboard
+tests/         81 tests (unit, data, integration, failure)
+```
+
+### Key invariant
+`make portability-audit` enforces that `src/` and `tests/` contain **zero** cloud-specific strings (`gs://`, `googleapis`, `boto3`, etc.). All cloud interaction goes through `cloudlayer/`.
 
 ---
 
 ## 📂 Project Structure
 
 ```
-dl-project/
-├── dataset/
-│   ├── images/
-│   │   ├── Fractured/          # 717 X-ray images
-│   │   └── Non_fractured/      # 3,366 X-ray images
-│   ├── Annotations/            # COCO, YOLO, VOC formats
-│   └── dataset.csv             # Metadata (body part, view, label)
-│
-├── model.py                    # ModelBaseline, ModelImproved, ModelFinal
-├── trainer.py                  # Main training script (TensorBoard + all 3 models)
-├── dl_utils.py                 # train_one_epoch(), test(), compute_performance()
-│
-├── src/
+xray-detection-dl/
+├── src/                        # Layer 1: Provider-neutral ML
+│   ├── config.py               # Single point of environment knowledge
+│   ├── models.py               # ModelBaseline, ModelImproved, ModelFinal
 │   ├── dataset.py              # FractureDataset + DataLoader factory
-│   ├── evaluate.py             # Confusion matrix, ROC, learning curves, Grad-CAM
-│   ├── models.py               # (alternative module — same architectures)
-│   └── train.py                # (lower-level training loop)
+│   ├── evaluate.py             # Metrics, confusion matrix, ROC, Grad-CAM
+│   ├── tracking.py             # MLflow tracking + lineage tags
+│   └── train.py                # MLflow-tracked training (replaces trainer.py)
 │
-├── notebooks/
-│   ├── 01_eda.ipynb              # Exploratory Data Analysis
-│   ├── 02_baseline.ipynb         # Iteration 1: ModelBaseline
-│   ├── 03_improved.ipynb         # Iteration 2: ModelImproved
-│   └── 04_final.ipynb            # Iteration 3: ModelFinal + comparison
+├── cloudlayer/                 # Layer 2: Cloud adapter
+│   ├── base.py                 # CloudAdapter ABC (11 methods)
+│   └── gcp.py                  # GCP implementation
 │
-├── app/
-│   ├── app.py                  # Gradio web demo (upload X-ray → prediction)
-│   └── requirements.txt
+├── service/                    # Layer 3: FastAPI inference
+│   ├── app.py                  # /health, /ready, /predict, /metrics, /drift, /slo
+│   ├── schemas.py              # Pydantic models with lineage
+│   └── model_loader.py         # Singleton loader + image validation
 │
-├── models/                     # Saved best checkpoints (auto-created)
-├── results/                    # Charts & confusion matrices (auto-created)
-├── runs/                       # TensorBoard logs (auto-created)
-├── Dockerfile                  # Docker deployment
-└── README.md
+├── monitoring/                 # Observability
+│   ├── drift.py                # PSI + KS drift detection
+│   ├── alerts.py               # AlertManager (drift, error rate, latency)
+│   └── dashboard.py            # MetricsCollector (5 required metrics)
+│
+├── tests/                      # 81 tests
+│   ├── test_model.py           # 12 model architecture tests
+│   ├── test_data.py            # 13 data contract tests
+│   ├── test_service.py         # 13 integration tests
+│   ├── test_drift.py           # 24 monitoring tests
+│   └── test_failure.py         # 19 engineered failure tests
+│
+├── .github/workflows/
+│   ├── ci.yml                  # Lint → audit → test → Docker build
+│   └── cd.yml                  # Push → Artifact Registry → Cloud Run → smoke test
+│
+├── loadtest/
+│   ├── smoke.js                # k6: 1/10/50 VUs, p95 < 200ms threshold
+│   └── README.md               # Pre-declared latency target
+│
+├── scripts/
+│   ├── portability_audit.sh    # Enforces 3-layer rule
+│   └── inject_failure.py       # Live failure injection demo
+│
+├── evals/
+│   └── failure_report.md       # Failure engineering documentation
+│
+├── docs/
+│   ├── proposal.md             # Capstone proposal (M2)
+│   ├── model_card.md           # Model Card (Mitchell et al. 2019)
+│   └── cost_report.md          # Honest cost breakdown
+│
+├── app/                        # Demo UIs (not production)
+│   ├── app.py                  # Gradio demo
+│   └── streamlit_app.py        # Streamlit demo
+│
+├── Makefile                    # 18 targets — central command interface
+├── Dockerfile                  # Digest-pinned, multi-layer
+├── requirements.in             # Top-level dependencies
+├── cloud.env.example           # Environment contract template
+└── ruff.toml                   # Linter config
 ```
-
----
-
-## 📊 Dataset
-
-| Attribute           | Value                                                                                      |
-| ------------------- | ------------------------------------------------------------------------------------------ |
-| **Source**          | [FracAtlas](https://www.kaggle.com/datasets/mahmudulhasantasin/fracatlas-original-dataset) |
-| **Total images**    | 4,083                                                                                      |
-| **Fractured**       | 717 (17.6%)                                                                                |
-| **Non-Fractured**   | 3,366 (82.4%)                                                                              |
-| **Imbalance ratio** | ~4.7 : 1                                                                                   |
-| **Body parts**      | Leg (2,273), Hand (1,538), Shoulder (349), Hip (338)                                       |
-| **View angles**     | Frontal (2,503), Lateral (1,492), Oblique (418)                                            |
-| **Image sizes**     | Variable (373–2,304 px) → normalised to 224 × 224                                          |
-
-**Key challenge**: 4.7× class imbalance → addressed with inverse-frequency class-weighted loss.
-
-### Pre-processing & Data Augmentation
-
-To prevent overfitting and handle corrupted X-ray files, the dataset undergoes strict pre-processing in `src/dataset.py`:
-
-- **Safety**: `ImageFile.LOAD_TRUNCATED_IMAGES = True` protects against corrupted image bytes crashing the training loop.
-- **Training Augmentation**: Images are dynamically scaled to 256x256, randomly center-cropped to 224x224, horizontally flipped, rotated (±15°), and color jittered (±30% brightness/contrast).
-- **Validation/Test Standardization**: Strict deterministic resize to 224x224 with no random variations.
-- **Normalization**: All sets are normalized using standard ImageNet mean (`[0.485, 0.456, 0.406]`) and standard deviation (`[0.229, 0.224, 0.225]`).
-
----
-
-## 🤖 Iterative Model Development
-
-### Iteration 1 — `ModelBaseline` (Simple CNN from scratch)
-
-|                   |                                                                               |
-| ----------------- | ----------------------------------------------------------------------------- |
-| **Architecture**  | 4-block CNN: Conv(32)→Conv(64)→Conv(128)→Conv(256)→FC(512)→FC(2)              |
-| **Parameters**    | ~2.5M trainable                                                               |
-| **Augmentation**  | None                                                                          |
-| **Class weights** | ❌                                                                            |
-| **Problem found** | Overfitting (train acc >> val acc); low Fractured recall due to majority bias |
-| **Evidence**      | Learning curve diverges after epoch 8; CM shows many FN                       |
-
-> 🎯 **What problem from the previous model are you solving?** 
-> *As the first iteration, this model establishes our starting point. Its failure proved we urgently needed to solve **Severe Overfitting** and **Class Imbalance bias** in the next step.*
-
-### Iteration 2 — `ModelImproved` (ResNet-18 fine-tuned)
-
-|                   |                                                            |
-| ----------------- | ---------------------------------------------------------- |
-| **Architecture**  | ResNet-18 (ImageNet pretrained, 6 layers frozen)           |
-| **Parameters**    | 11.2M total, 10.6M trainable                               |
-| **Augmentation**  | Random flip, ±15° rotation, color jitter                   |
-| **Class weights** | ✅ Inverse-frequency weighting                             |
-| **LR**            | 3×10⁻⁴ (AdamW)                                             |
-| **Improvement**   | Higher recall on Fractured class; smoother learning curves |
-
-> 🎯 **What problem from the previous model are you solving, and how do you know it improved?** 
-> *We solved the Baseline's severe overfitting problem by adding Data Augmentation, and solved the low minority recall by adding Inverse-Frequency Class Weighting. **We know it improved** because the validation loss curve stabilized instead of exploding, and the F1-Score/Recall on the minority "Fractured" class increased dramatically.*
-
-### Iteration 3 — `ModelFinal` (EfficientNet-B0 fine-tuned)
-
-|                   |                                                                     |
-| ----------------- | ------------------------------------------------------------------- |
-| **Architecture**  | EfficientNet-B0 (ImageNet pretrained, full fine-tune) + custom head |
-| **Parameters**    | 5.3M (all trainable)                                                |
-| **Augmentation**  | Same as Iteration 2                                                 |
-| **Class weights** | ✅                                                                  |
-| **LR**            | 1×10⁻⁴ with CosineAnnealingLR                                       |
-| **Improvement**   | Best F1 + AUC; compound scaling → superior accuracy per parameter   |
-
-> 🎯 **What problem from the previous model are you solving, and how do you know it improved?** 
-> *ResNet-18 is bulky (~11.2M params). We wanted to solve parameter inefficiency to make cloud deployment easier. **We know it improved** because EfficientNet-B0 achieved superior ROC-AUC calibration and identical accuracy while cutting the parameter count by more than half (down to 5.3M)!*
-
----
-
-## 📈 Results Summary
-
-| Model                            | Accuracy | Precision | Recall | **F1** | AUC   |
-| -------------------------------- | -------- | --------- | ------ | ------ | ----- |
-| ModelBaseline (Simple CNN)       | 0.8563        | 0.7209         | 0.2897      | 0.4236      | 0.8378     |
-| ModelImproved (ResNet-18)        | 0.9752        | **0.809**         | 0.6729      | 0.9319      | 0.9111     |
-| **ModelFinal (EfficientNet-B0)** | **0.9808**    | 0.75     | **0.7009**  | **0.948**  | **0.9147** |
-
-> Run `trainer.py` to populate the table with actual values.
-
-**Model selection**: EfficientNet-B0 achieves the best F1-score. High **Recall** is prioritised clinically — a missed fracture (false negative) is more dangerous than a false alarm.
 
 ---
 
 ## 🚀 Quickstart
 
-### 1. Install dependencies
+### One-command reproduction
 
 ```bash
-pip install -r app/requirements.txt
-pip install tensorboard
+make reproduce
 ```
 
-### 2. Explore the dataset
+Metric claims for automated verification (`make verify`):
+- expected test_auc: 0.913 ± 0.020
+- expected test_f1: 0.687 ± 0.030
 
-Open and run `notebooks/01_eda.ipynb` using Jupyter or your IDE.
+This runs: `setup` → `data` → `train` → `verify`
 
-# Outputs charts to results/
-
-### 3. Train all models
+### Step-by-step
 
 ```bash
-python trainer.py
-# Trains ModelBaseline → ModelImproved → ModelFinal
-# Saves checkpoints to models/
-# Logs to runs/ (TensorBoard)
+# 1. Install dependencies
+make setup
+
+# 2. Verify dataset is present
+make data
+
+# 3. Train all models with MLflow tracking
+make train
+
+# 4. Run all 81 tests
+make test
+
+# 5. Check portability (3-layer rule)
+make portability-audit
+
+# 6. Verify reproducible metrics against claims
+make verify
+
+# 7. Start FastAPI server
+make serve
+# → http://localhost:8000/docs (Swagger UI)
+
+# 8. Run failure injection demo
+python scripts/inject_failure.py
 ```
 
-### 4. Monitor live with TensorBoard
+### Train a single model
 
 ```bash
-tensorboard --logdir=runs
-# Open: http://localhost:6006
-```
-
-### 5. Launch web demo
-
-```bash
-cd app && python app.py
-# Open: http://localhost:7860
+make train-model MODEL=ModelFinal
 ```
 
 ---
 
-## ☁️ Cloud Deployment (Streamlit)
+## 📊 Results
 
-This project includes a secondary web app (`app/streamlit_app.py`) natively optimized for free cloud deployment on Streamlit Community Cloud.
+| Model | Accuracy | Precision | Recall | **F1** | AUC |
+|---|---|---|---|---|---|
+| ModelBaseline (CNN) | 0.8412 | 0.6250 | 0.2336 | 0.3401 | 0.8080 |
+| ModelImproved (ResNet-18) | 0.9051 | 0.7753 | 0.6449 | 0.7041 | 0.9046 |
+| **ModelFinal (EfficientNet-B0)** | **0.8969** | 0.7340 | **0.6449** | **0.6866** | **0.9130** |
 
-1. Push your repository to GitHub.
-2. Sign in to [Streamlit Community Cloud](https://share.streamlit.io/).
-3. Click **New app**.
-4. Select your repository and set the **Main file path** to `app/streamlit_app.py`.
-5. Click **Deploy!** 
+**Selected model**: EfficientNet-B0 — highest F1-score with smallest parameter count (5.3M). High recall prioritised: missed fractures are clinically more dangerous than false alarms.
 
-To test the Streamlit interface locally before deploying:
+---
+
+## 🔌 API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/health` | GET | Liveness probe (always 200 if alive) |
+| `/ready` | GET | Readiness probe (200 if model loaded, 503 if not) |
+| `/predict` | POST | Single X-ray → label + confidence + lineage |
+| `/predict/batch` | POST | Multiple images with partial failure handling |
+| `/metrics` | GET | Dashboard snapshot (5 required metrics) |
+| `/drift` | GET | Latest PSI drift check |
+| `/slo` | GET | SLO status (availability, latency, drift) |
+| `/alerts` | GET | Active + historical alerts |
+
+---
+
+## 🛡️ Failure Engineering
+
+**Planned failure**: Corrupted Image Injection (simulating a faulty PACS feed)
+
+| Layer | Protection |
+|---|---|
+| File validation | Rejects non-images (text, PDF, binary) |
+| Image decoding | Catches truncated/corrupted JPEGs |
+| Entropy check | Rejects blank frames (all-black/white, entropy < 1.0) |
+| Confidence threshold | Flags uncertain predictions (conf < 0.60) |
+| Monitoring | Alerts fire on drift, error rate, latency breaches |
+
 ```bash
-streamlit run app/streamlit_app.py
+# Live demo
+make serve                        # Terminal 1
+python scripts/inject_failure.py  # Terminal 2
 ```
+
+See [evals/failure_report.md](evals/failure_report.md) for full documentation.
+
+---
+
+## 📈 Monitoring
+
+### 5 Dashboard Metrics (R3 requirement)
+
+1. **Request rate** — predictions per minute
+2. **Error rate** — by predicted class
+3. **Latency** — p50, p95, p99 percentiles
+4. **PSI drift score** — prediction distribution shift
+5. **Active model version** — for lineage
+
+### Alert Rules
+
+| Rule | Fires when |
+|---|---|
+| Drift | PSI ≥ 0.20 |
+| Error rate | ≥ 5% |
+| Latency | p95 ≥ 200ms |
+
+---
+
+## 🧪 Tests
+
+```bash
+make test   # Run all 81 tests
+```
+
+| Suite | Tests | Coverage |
+|---|---|---|
+| `test_model.py` | 12 | Model instantiation, shapes, gradients, checkpoints |
+| `test_data.py` | 13 | Loading, leakage, splits, transforms, class distribution |
+| `test_service.py` | 13 | All API endpoints, schemas, error handling |
+| `test_drift.py` | 24 | PSI, KS, drift monitor, alerts, metrics, SLO |
+| `test_failure.py` | 19 | 6 attack vectors: truncated, blank, non-image, batch |
+| **Total** | **81** | |
 
 ---
 
 ## 🐳 Docker
 
 ```bash
-docker build -t fracture-detector .
-docker run -p 7860:7860 fracture-detector
+# Build (SHA-tagged, digest-pinned base)
+make image-build
+
+# Run locally
+make image-run
+# → http://localhost:7860 (Gradio) or http://localhost:8000 (FastAPI)
+
+# Push to Artifact Registry
+make image-push
 ```
 
 ---
 
-## 📁 Generated Outputs
+## ☁️ Cloud Deployment (GCP)
 
-After `trainer.py` completes, `results/` contains:
+```bash
+# 1. Copy and fill environment contract
+cp cloud.env.example cloud.env
 
-| File                          | Description                         |
-| ----------------------------- | ----------------------------------- |
-| `eda_class_distribution.png`  | Class balance bar + pie charts      |
-| `eda_body_parts.png`          | X-ray count per body part           |
-| `eda_sample_images.png`       | Sample X-rays from each class       |
-| `ModelBaseline_curves.png`    | Learning curves (loss, acc, F1/AUC) |
-| `ModelImproved_curves.png`    | Learning curves                     |
-| `ModelFinal_curves.png`       | Learning curves                     |
-| `ModelBaseline_confusion.png` | Confusion matrix on test set        |
-| `ModelImproved_confusion.png` | Confusion matrix                    |
-| `ModelFinal_confusion.png`    | Confusion matrix                    |
-| `roc_curves.png`              | ROC curves for all 3 models         |
-| `model_comparison.png`        | Side-by-side metric bar chart       |
+# 2. Verify all slots
+make cloud-check
+
+# 3. Push and deploy
+git push origin main  # Triggers CI → CD → Cloud Run
+```
+
+The CD pipeline uses **Workload Identity Federation** (no long-lived keys).
 
 ---
 
-## 👥 Contributors
-1. (6688093) Ongsa Raksalam
-2. (6688152) Thanadon Yindeesuk
-3. (6688249) Sahatsawat Nitjaphant
+## 💰 Cost
+
+| Total estimated | Budget | Status |
+|---|---|---|
+| ~340 THB/term | 800 THB | ✅ 43% of budget |
+
+See [docs/cost_report.md](docs/cost_report.md) for detailed breakdown.
+
+---
+
+## 📋 Documentation
+
+| Document | Purpose |
+|---|---|
+| [docs/proposal.md](docs/proposal.md) | Capstone proposal (M2 milestone) |
+| [docs/model_card.md](docs/model_card.md) | Model Card (Mitchell et al. 2019) |
+| [docs/cost_report.md](docs/cost_report.md) | Honest cost breakdown with teardown checklist |
+| [evals/failure_report.md](evals/failure_report.md) | Failure engineering: with/without protection |
+| [loadtest/README.md](loadtest/README.md) | Pre-declared latency target + results |
+
+---
+
+## 📂 Dataset
+
+| Attribute | Value |
+|---|---|
+| **Source** | [FracAtlas](https://www.nature.com/articles/s41597-023-02432-4) |
+| **Licence** | CC BY-SA 4.0 |
+| **Total images** | 4,083 |
+| **Fractured** | 717 (17.6%) |
+| **Non-Fractured** | 3,366 (82.4%) |
+| **Imbalance** | 4.7:1 → inverse-frequency weighted loss |
+
+---
+
+## 🔧 Make Targets
+
+```bash
+make help              # Show all targets
+make reproduce         # One-command full reproduction
+make train             # Train with MLflow
+make test              # Run all 81 tests
+make portability-audit # Enforce 3-layer rule
+make serve             # Start FastAPI server
+make image-build       # Build Docker image
+make cloud-check       # Verify cloud.env
+make cost-report       # Print cost estimate
+```
+
+---
+
+## 👥 Team
+
+| Student ID | Name | Owns |
+|---|---|---|
+| 6688249 | Sahatsawat Nitjaphant | MLOps infra: Makefile, Docker, DVC, MLflow, CI/CD, cloud adapter, monitoring |
+| 6688093 | Ongsa Raksalam | ML pipeline: training, evaluation, experiment tracking, model registry |
+| 6688152 | Thanadon Yindeesuk | Serving & reliability: FastAPI, load testing, failure engineering, tests |

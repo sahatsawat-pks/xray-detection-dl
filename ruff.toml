@@ -1,0 +1,16 @@
+# Ruff linter configuration for ITCS355 capstone
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM"]
+ignore = ["E501"]  # line length handled separately
+
+[lint.per-file-ignores]
+"tests/*" = ["S101", "E402", "B007"]   # allow assert, sys.path inserts, and loop counters in tests
+"scripts/*" = ["E402"]                  # allow sys.path manipulation in entrypoint scripts
+"src/dataset.py" = ["E402"]             # PIL ImageFile truncated flag set before imports
+"service/*" = ["B008"]                  # FastAPI File(...) and Depends(...) parameter defaults
+
+[lint.isort]
+known-first-party = ["src", "cloudlayer", "service", "monitoring"]

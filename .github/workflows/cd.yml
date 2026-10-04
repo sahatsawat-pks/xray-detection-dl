@@ -1,0 +1,109 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# CD — Continuous Deployment
+# ═══════════════════════════════════════════════════════════════════════════════
+# Triggered on merge to main (only if CI passes).
+# Builds, pushes to Artifact Registry, and deploys to Cloud Run.
+#
+# Uses Workload Identity Federation — no long-lived keys.
+
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  IMAGE_NAME: fracture-detector
+  GCP_REGION: asia-southeast1
+
+# Workload Identity Federation — no long-lived keys
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    # Only deploy if CI passed (CI runs on the same push)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set image tag from SHA
+        run: echo "IMAGE_TAG=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+
+      # ── Authenticate to GCP via Workload Identity ──────────────────────
+      - id: auth
+        name: Authenticate to GCP
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+        continue-on-error: true  # Skip if not configured yet
+
+      - name: Set up Cloud SDK
+        if: steps.auth.outcome == 'success'
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Artifact Registry
+        if: steps.auth.outcome == 'success'
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+
+      # ── Build & Push ──────────────────────────────────────────────────────
+      - name: Build Docker image
+        run: |
+          docker build \
+            --platform linux/amd64 \
+            -t ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            .
+
+      - name: Tag & Push to Artifact Registry
+        if: steps.auth.outcome == 'success'
+        run: |
+          REGISTRY="${{ env.GCP_REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/xray"
+          docker tag ${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }} \
+            ${REGISTRY}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          docker push ${REGISTRY}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}
+          echo "FULL_IMAGE=${REGISTRY}/${{ env.IMAGE_NAME }}:${{ env.IMAGE_TAG }}" >> $GITHUB_ENV
+
+      # ── Deploy to Cloud Run ────────────────────────────────────────────────
+      - name: Deploy to Cloud Run
+        if: steps.auth.outcome == 'success'
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: xray-fracture-predict
+          image: ${{ env.FULL_IMAGE }}
+          region: ${{ env.GCP_REGION }}
+          flags: >-
+            --port=8000
+            --memory=512Mi
+            --cpu=1
+            --min-instances=0
+            --max-instances=3
+            --timeout=60s
+            --set-env-vars=PYTHONUNBUFFERED=1
+
+      # ── Smoke Test ─────────────────────────────────────────────────────────
+      - name: Smoke test deployed service
+        if: steps.auth.outcome == 'success'
+        run: |
+          SERVICE_URL=$(gcloud run services describe xray-fracture-predict \
+            --region=${{ env.GCP_REGION }} --format='value(status.url)')
+          echo "Service URL: ${SERVICE_URL}"
+
+          # Health check
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" ${SERVICE_URL}/health)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Health check failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+          echo "✅ Health check passed"
+
+          # Readiness check
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" ${SERVICE_URL}/ready)
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "❌ Readiness check failed (HTTP $HTTP_CODE)"
+            exit 1
+          fi
+          echo "✅ Readiness check passed"

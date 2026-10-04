@@ -1,5 +1,24 @@
 project-example
 
+# ── ITCS355 MLOps ─────────────────────────────────────────────────────────────
+# Cloud credentials — NEVER commit (automatic deduction)
+cloud.env
+
+# MLflow
+mlruns/
+mlflow.db
+mlartifacts/
+
+# DVC
+.dvc/cache/
+.dvc/tmp/
+
+# Experiment logs
+experiments.xlsx
+
+# Model checkpoints (tracked via DVC or MLflow, not git)
+# models/*.pth
+
 # Created by https://www.toptal.com/developers/gitignore/api/python
 # Edit at https://www.toptal.com/developers/gitignore?templates=python
 

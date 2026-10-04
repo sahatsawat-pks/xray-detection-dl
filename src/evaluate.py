@@ -4,20 +4,25 @@ evaluate.py — Evaluation utilities: metrics, confusion matrix, learning curves
 """
 
 import os
-import numpy as np
+
 import matplotlib
+import numpy as np
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import DataLoader
 from sklearn.metrics import (
-    accuracy_score, precision_score, recall_score,
-    f1_score, roc_auc_score, confusion_matrix, roc_curve,
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+    roc_auc_score,
+    roc_curve,
 )
+from torch.utils.data import DataLoader
 
 CLASSES = ["Non-Fractured", "Fractured"]
 COLORS  = {"Non-Fractured": "#4C9BE8", "Fractured": "#E85C5C"}
@@ -80,9 +85,9 @@ def plot_learning_curves(history: dict, model_name: str, save_dir: str = "../res
         ("Val F1 / AUC", ["val_f1", "val_auc"],    ["#A78BFA", "#34D399"]),
     ]
 
-    for ax, (title, keys, cols) in zip(axes, panel_cfg):
+    for ax, (title, keys, cols) in zip(axes, panel_cfg, strict=True):
         ax.set_facecolor("#1A1A2E")
-        for key, col in zip(keys, cols):
+        for key, col in zip(keys, cols, strict=True):
             label = key.replace("_", " ").title()
             ax.plot(epochs, history[key], color=col, linewidth=2.5, label=label)
         ax.set_title(title, color="white", fontsize=14, fontweight="bold")
@@ -115,8 +120,10 @@ def plot_confusion_matrix(y_true, y_pred, model_name: str, save_dir: str = "../r
     plt.colorbar(im, ax=ax)
 
     tick_marks = range(len(CLASSES))
-    ax.set_xticks(tick_marks); ax.set_xticklabels(CLASSES, color="white", fontsize=12)
-    ax.set_yticks(tick_marks); ax.set_yticklabels(CLASSES, color="white", fontsize=12)
+    ax.set_xticks(tick_marks)
+    ax.set_xticklabels(CLASSES, color="white", fontsize=12)
+    ax.set_yticks(tick_marks)
+    ax.set_yticklabels(CLASSES, color="white", fontsize=12)
 
     thresh = cm.max() / 2.0
     for i in range(cm.shape[0]):
@@ -192,7 +199,7 @@ def plot_comparison_table(rows: list[dict], save_dir: str = "../results"):
         vals = [row[m] for m in metrics]
         bars = ax.bar(x + i * width, vals, width, label=row["Model"],
                       color=palette[i % len(palette)], alpha=0.9, edgecolor="#FFFFFF33")
-        for bar, v in zip(bars, vals):
+        for bar, v in zip(bars, vals, strict=True):
             ax.text(bar.get_x() + bar.get_width() / 2,
                     bar.get_height() + 0.005, f"{v:.3f}",
                     ha="center", va="bottom", color="white", fontsize=9)

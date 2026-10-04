@@ -3,20 +3,18 @@ dataset.py — FractureDataset for bone fracture detection.
 Supports train/val/test splits from the dataset.csv metadata.
 """
 
-import os
 import csv
+import os
 import random
 
 # Allow PIL to load truncated/corrupted images without crashing
 from PIL import ImageFile
+
 ImageFile.LOAD_TRUNCATED_IMAGES = True
-from pathlib import Path
-from PIL import Image
-
 import torch
-from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms as T
-
+from PIL import Image
+from torch.utils.data import DataLoader, Dataset
 
 # ── Label mapping ────────────────────────────────────────────────────────────
 CLASSES = ["Non-Fractured", "Fractured"]  # 0, 1
@@ -118,11 +116,10 @@ def make_loaders(
     val_ds   = FractureDataset(val_recs,   get_transforms("val",   img_size))
     test_ds  = FractureDataset(test_recs,  get_transforms("test",  img_size))
 
-    import torch
     # MPS (Apple Silicon) does not support multi-process DataLoader or pin_memory
     is_cuda = torch.cuda.is_available()
     safe_workers  = num_workers if is_cuda else 0
-    safe_pin      = True        if is_cuda else False
+    safe_pin      = bool(is_cuda)
     common_kwargs = dict(num_workers=safe_workers, pin_memory=safe_pin)
 
     train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True,  **common_kwargs)
