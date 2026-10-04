@@ -51,5 +51,5 @@ ENV PORT=8000
 
 WORKDIR /app
 
-# Production Default: FastAPI Inference Service on port 8000 (serves /health, /ready, /predict)
-CMD ["python", "-m", "uvicorn", "service.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# Production Default: FastAPI Inference Service (serves /health, /ready, /predict)
+CMD ["sh", "-c", "python -m uvicorn service.app:app --host 0.0.0.0 --port ${PORT:-8000}"]

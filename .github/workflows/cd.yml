@@ -77,11 +77,12 @@ jobs:
           region: ${{ env.GCP_REGION }}
           flags: >-
             --port=8000
-            --memory=512Mi
+            --memory=1Gi
             --cpu=1
             --min-instances=0
             --max-instances=3
-            --timeout=60s
+            --timeout=120s
+            --allow-unauthenticated
             --set-env-vars=PYTHONUNBUFFERED=1
 
       # ── Smoke Test ─────────────────────────────────────────────────────────
