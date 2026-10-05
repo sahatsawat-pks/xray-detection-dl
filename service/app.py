@@ -19,6 +19,7 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
 
@@ -74,6 +75,15 @@ app = FastAPI(
     description="AI-assisted triage: upload an X-ray → get fracture/no-fracture classification.",
     version="1.0.0",
     lifespan=lifespan,
+)
+
+# Enable CORS for web frontends (Vercel, Streamlit, local dev)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
