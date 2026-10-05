@@ -150,6 +150,17 @@ class TestPredictEndpoint:
         resp = client.post("/predict")
         assert resp.status_code == 422
 
+    def test_gradcam_field_in_prediction(self, client):
+        """Prediction response should contain heatmap_base64 string or None."""
+        jpeg = _make_jpeg_bytes()
+        resp = client.post("/predict", files={"file": ("test.jpg", jpeg, "image/jpeg")})
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "heatmap_base64" in data
+        if data["heatmap_base64"] is not None:
+            assert isinstance(data["heatmap_base64"], str)
+            assert len(data["heatmap_base64"]) > 100
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # Batch Prediction

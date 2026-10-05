@@ -22,6 +22,9 @@ class PredictionResponse(BaseModel):
     uncertain: bool = Field(
         False, description="True if confidence is below threshold (flagged for review)"
     )
+    heatmap_base64: str | None = Field(
+        None, description="Optional Base64-encoded Grad-CAM attention heatmap overlay"
+    )
 
 
 class BatchPredictionResponse(BaseModel):

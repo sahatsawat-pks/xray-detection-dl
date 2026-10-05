@@ -91,10 +91,26 @@
             <!-- Image Preview -->
             <div id="previewContainer" class="hidden space-y-3">
               <div class="relative max-h-56 flex items-center justify-center overflow-hidden rounded-lg border border-slate-800 bg-slate-950/80 p-2">
-                <img id="previewImage" src="" alt="X-Ray Radiograph Preview" class="max-h-52 w-auto max-w-full rounded object-contain shadow-md" />
+                <img id="previewImage" src="" alt="X-Ray Radiograph Preview" class="max-h-52 w-auto max-w-full rounded object-contain shadow-md transition-all duration-200" />
+                <span id="camBadge" class="hidden absolute top-2 right-2 bg-rose-600/90 text-white text-[10px] font-semibold px-2 py-0.5 rounded shadow flex items-center gap-1">
+                  🔥 Grad-CAM Heatmap
+                </span>
               </div>
-              <p id="fileName" class="text-xs text-slate-400 mono truncate"></p>
-              <button id="changeImageBtn" class="text-xs text-indigo-400 hover:text-indigo-300 underline">Change image</button>
+
+              <!-- View Mode Toggle Buttons -->
+              <div id="viewModeToggle" class="hidden flex items-center justify-center gap-2 pt-0.5">
+                <button type="button" id="btnOriginal" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white shadow-sm transition">
+                  📷 Original X-Ray
+                </button>
+                <button type="button" id="btnHeatmap" class="px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1">
+                  🔥 Fracture Heatmap
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between text-xs px-1">
+                <p id="fileName" class="text-slate-400 mono truncate max-w-[200px]"></p>
+                <button type="button" id="changeImageBtn" class="text-indigo-400 hover:text-indigo-300 underline">Change image</button>
+              </div>
             </div>
           </div>
 
@@ -180,6 +196,20 @@
                 </div>
               </div>
 
+              <!-- Grad-CAM Localization Banner -->
+              <div id="gradcamBanner" class="hidden bg-indigo-950/40 border border-indigo-500/40 rounded-xl p-3.5 text-xs text-indigo-300 flex items-center justify-between gap-3 shadow-sm">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-lg">🔥</span>
+                  <div>
+                    <strong class="font-semibold block text-indigo-200">Fracture Site Localized</strong>
+                    <span class="text-slate-400 text-[11px]">Grad-CAM attention heatmap highlights the discriminative fracture area.</span>
+                  </div>
+                </div>
+                <button type="button" id="toggleHeatmapBtn" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs whitespace-nowrap transition shadow-sm">
+                  Toggle Heatmap
+                </button>
+              </div>
+
               <!-- Diagnostic Details Breakdown -->
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 <div class="bg-slate-950/60 border border-slate-800 rounded-xl p-3">
@@ -241,6 +271,9 @@
     const API_BASE = "https://xray-fracture-predict-24jrf436va-as.a.run.app";
 
     let selectedFile = null;
+    let currentOriginalSrc = "";
+    let currentHeatmapSrc = "";
+    let isHeatmapActive = false;
 
     // Elements
     const dropZone = document.getElementById("dropZone");
@@ -317,12 +350,49 @@
       e.stopPropagation();
     });
 
+    const btnOriginal = document.getElementById("btnOriginal");
+    const btnHeatmap = document.getElementById("btnHeatmap");
+    const viewModeToggle = document.getElementById("viewModeToggle");
+    const camBadge = document.getElementById("camBadge");
+    const gradcamBanner = document.getElementById("gradcamBanner");
+    const toggleHeatmapBtn = document.getElementById("toggleHeatmapBtn");
+
+    function setViewMode(showHeatmap) {
+      if (!currentHeatmapSrc) return;
+      isHeatmapActive = showHeatmap;
+      if (showHeatmap) {
+        previewImage.src = currentHeatmapSrc;
+        camBadge.classList.remove("hidden");
+        btnHeatmap.className = "px-2.5 py-1 text-xs font-medium rounded-lg bg-rose-600 text-white shadow-sm transition flex items-center gap-1";
+        btnOriginal.className = "px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition";
+        toggleHeatmapBtn.textContent = "Show Original";
+      } else {
+        previewImage.src = currentOriginalSrc;
+        camBadge.classList.add("hidden");
+        btnOriginal.className = "px-2.5 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white shadow-sm transition";
+        btnHeatmap.className = "px-2.5 py-1 text-xs font-medium rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition flex items-center gap-1";
+        toggleHeatmapBtn.textContent = "Show Heatmap";
+      }
+    }
+
+    btnOriginal.addEventListener("click", () => setViewMode(false));
+    btnHeatmap.addEventListener("click", () => setViewMode(true));
+    toggleHeatmapBtn.addEventListener("click", () => setViewMode(!isHeatmapActive));
+
     function handleFileSelect(file) {
+      if (!file) return;
       selectedFile = file;
       fileName.textContent = file.name;
       const reader = new FileReader();
       reader.onload = (e) => {
-        previewImage.src = e.target.result;
+        currentOriginalSrc = e.target.result;
+        currentHeatmapSrc = "";
+        setViewMode(false);
+        viewModeToggle.classList.add("hidden");
+        gradcamBanner.classList.add("hidden");
+        camBadge.classList.add("hidden");
+
+        previewImage.src = currentOriginalSrc;
         uploadPrompt.classList.add("hidden");
         previewContainer.classList.remove("hidden");
         analyzeBtn.disabled = false;
@@ -398,6 +468,22 @@
       } else {
         uncertainWarning.classList.add("hidden");
       }
+
+      // Handle Grad-CAM Localization Heatmap
+      if (data.heatmap_base64) {
+        currentHeatmapSrc = `data:image/jpeg;base64,${data.heatmap_base64}`;
+        viewModeToggle.classList.remove("hidden");
+        gradcamBanner.classList.remove("hidden");
+        if (isFractured) {
+          setViewMode(true);
+        } else {
+          setViewMode(false);
+        }
+      } else {
+        currentHeatmapSrc = "";
+        viewModeToggle.classList.add("hidden");
+        gradcamBanner.classList.add("hidden");
+      }
     }
 
     // Clinical Sample Radiographs (Embedded Base64 from FracAtlas Dataset)
@@ -427,6 +513,12 @@
       const dataUrl = `data:image/jpeg;base64,${b64}`;
 
       // 1. Immediately render radiograph preview
+      currentOriginalSrc = dataUrl;
+      currentHeatmapSrc = "";
+      viewModeToggle.classList.add("hidden");
+      gradcamBanner.classList.add("hidden");
+      camBadge.classList.add("hidden");
+
       previewImage.src = dataUrl;
       fileName.textContent = name;
       uploadPrompt.classList.add("hidden");

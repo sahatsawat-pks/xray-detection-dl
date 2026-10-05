@@ -6,6 +6,8 @@ get_model() and is_ready() for the /ready endpoint. Handles
 GPU/CPU fallback and image preprocessing.
 """
 
+import base64
+import io
 import os
 import time
 from pathlib import Path
@@ -170,12 +172,104 @@ def preprocess(image: Image.Image) -> torch.Tensor:
     return tensor.to(_state["device"])
 
 
+def generate_gradcam(
+    image: Image.Image,
+    target_class: int = 1,
+    alpha: float = 0.40,
+) -> str | None:
+    """
+    Generate a Grad-CAM localization heatmap overlaid on the radiograph.
+
+    Target class 1 corresponds to 'Fractured'.
+    Returns base64-encoded JPEG image string, or None if computation fails.
+    """
+    model = get_model()
+    if model is None:
+        return None
+
+    # Identify target convolutional layer
+    target_layer = None
+    if hasattr(model, "model") and hasattr(model.model, "features"):
+        target_layer = model.model.features[-1]
+    elif hasattr(model, "features"):
+        target_layer = model.features[-1]
+
+    if target_layer is None:
+        return None
+
+    activations: list[torch.Tensor] = []
+    gradients: list[torch.Tensor] = []
+
+    def f_hook(module, inp, out):
+        activations.append(out)
+
+    def b_hook(module, grad_in, grad_out):
+        gradients.append(grad_out[0])
+
+    h_fwd = target_layer.register_forward_hook(f_hook)
+    h_bwd = target_layer.register_full_backward_hook(b_hook)
+
+    try:
+        tensor = preprocess(image)
+        tensor.requires_grad = True
+
+        logits = model(tensor)
+        score = logits[0, target_class]
+        model.zero_grad()
+        score.backward()
+
+        if not activations or not gradients:
+            return None
+
+        act = activations[0].detach()
+        grad = gradients[0].detach()
+
+        # Channel weights via Global Average Pooling
+        weights = torch.mean(grad, dim=(2, 3), keepdim=True)
+        cam = F.relu(torch.sum(weights * act, dim=1, keepdim=True))
+
+        # Prepare display image (thumbnail to max 512px for crisp rendering and fast payload)
+        disp_img = image.convert("RGB")
+        disp_img.thumbnail((512, 512), Image.Resampling.LANCZOS)
+        disp_w, disp_h = disp_img.size
+
+        cam = F.interpolate(cam, size=(disp_h, disp_w), mode="bilinear", align_corners=False)
+        cam_np = cam.squeeze().cpu().numpy()
+
+        cam_min, cam_max = cam_np.min(), cam_np.max()
+        if cam_max - cam_min > 1e-8:
+            cam_norm = (cam_np - cam_min) / (cam_max - cam_min)
+        else:
+            cam_norm = np.zeros_like(cam_np)
+
+        # Smooth JET colormap (pure numpy: zero extra overhead)
+        r = np.clip(1.5 - np.abs(4.0 * cam_norm - 3.0), 0.0, 1.0)
+        g = np.clip(1.5 - np.abs(4.0 * cam_norm - 2.0), 0.0, 1.0)
+        b = np.clip(1.5 - np.abs(4.0 * cam_norm - 1.0), 0.0, 1.0)
+        heatmap = (np.stack([r, g, b], axis=-1) * 255).astype(np.uint8)
+
+        orig_np = np.array(disp_img)
+        blended = (orig_np * (1.0 - alpha) + heatmap * alpha).astype(np.uint8)
+
+        out_img = Image.fromarray(blended)
+        buf = io.BytesIO()
+        out_img.save(buf, format="JPEG", quality=85)
+        return base64.b64encode(buf.getvalue()).decode("utf-8")
+
+    except Exception as e:
+        print(f"[gradcam] Warning: Could not compute Grad-CAM: {e}")
+        return None
+    finally:
+        h_fwd.remove()
+        h_bwd.remove()
+
+
 def predict(image: Image.Image) -> dict:
     """
     Run inference on a single PIL image.
 
     Returns dict with: label, confidence, fractured_probability,
-    inference_time_ms, uncertain, model_version, model_name.
+    inference_time_ms, uncertain, model_version, model_name, heatmap_base64.
     """
     model = get_model()
     if model is None:
@@ -193,6 +287,11 @@ def predict(image: Image.Image) -> dict:
     predicted_class = 1 if fractured_prob >= 0.5 else 0
     confidence = fractured_prob if predicted_class == 1 else (1 - fractured_prob)
 
+    # Generate Grad-CAM whenever a fracture is detected or suspected
+    heatmap_b64 = None
+    if predicted_class == 1 or fractured_prob >= 0.25:
+        heatmap_b64 = generate_gradcam(image, target_class=1)
+
     return {
         "label": CLASSES[predicted_class],
         "confidence": round(confidence, 4),
@@ -201,4 +300,5 @@ def predict(image: Image.Image) -> dict:
         "uncertain": confidence < CONFIDENCE_THRESHOLD,
         "model_version": _state["version"],
         "model_name": _state["model_name"],
+        "heatmap_base64": heatmap_b64,
     }
