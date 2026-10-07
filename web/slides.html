@@ -13,6 +13,45 @@
     .mono { font-family: 'JetBrains Mono', monospace; }
     .slide { display: none; }
     .slide.active { display: flex; }
+
+    @media print {
+      @page {
+        size: 16in 9in;
+        margin: 0;
+      }
+      html, body {
+        width: 100% !important;
+        height: auto !important;
+        background-color: #020617 !important;
+        color: #f8fafc !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+      header, footer, #speakerNotesTray {
+        display: none !important;
+      }
+      main {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        display: block !important;
+      }
+      .slide {
+        display: flex !important;
+        page-break-after: always !important;
+        break-after: page !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+        width: 16in !important;
+        height: 9in !important;
+        min-height: 9in !important;
+        max-height: 9in !important;
+        padding: 3rem 4rem !important;
+        box-sizing: border-box !important;
+        justify-content: center !important;
+      }
+    }
   </style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white select-none">
@@ -30,9 +69,15 @@
     </div>
 
     <!-- Controls -->
-    <div class="flex items-center space-x-4">
+    <div class="flex items-center space-x-3">
+      <a href="FracNet_AI_Slides.pdf" download="FracNet_AI_Slides.pdf" id="downloadPdfBtn" class="text-xs px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition flex items-center gap-1 shadow-sm">
+        <span>📥</span> Download PDF
+      </a>
+      <button onclick="window.print()" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
+        🖨️ Print
+      </button>
       <button id="toggleNotesBtn" class="text-xs px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition">
-        📝 Toggle Speaker Notes
+        📝 Notes
       </button>
       <div class="text-xs mono text-slate-400 bg-slate-900 px-3 py-1 rounded border border-slate-800">
         Slide <span id="currentSlideNum" class="text-indigo-400 font-bold">1</span> / <span id="totalSlidesNum">10</span>
