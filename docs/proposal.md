@@ -1,6 +1,6 @@
 # ITCS355 Capstone Proposal — Bone Fracture X-Ray Detection
 
-**Team**: Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Thanadon Yindeesuk (6688152)
+**Team**: Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Xinyi Chen (6688232)
 
 ---
 
@@ -72,4 +72,4 @@ Well under the 800 THB term budget.
 |---|---|
 | **Sahatsawat (6688249)** | MLOps infrastructure: Makefile, Docker, DVC, MLflow tracking, CI/CD, cloud adapter, monitoring/drift, cost report |
 | **Ongsa (6688093)** | ML pipeline: model training, evaluation, experiment tracking, model registry, hyperparameter study |
-| **Thanadon (6688152)** | Serving & reliability: FastAPI service, load testing, failure engineering, input validation, tests, model card |
+| **Xinyi (6688232)** | Serving & reliability: FastAPI service, load testing, failure engineering, input validation, tests, model card |

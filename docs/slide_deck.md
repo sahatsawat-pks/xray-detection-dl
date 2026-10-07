@@ -2,7 +2,7 @@
 
 > **Presentation Duration**: 8 minutes presentation + 5 minutes Q&A  
 > **Target Score**: 15 Marks (Capstone Demo & Defense M4)  
-> **Team**: Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Thanadon Yindeesuk (6688152)  
+> **Team**: Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Xinyi Chen (6688232)  
 > **Live Endpoint**: `https://xray-fracture-predict-24jrf436va-as.a.run.app`
 
 ---
@@ -11,14 +11,14 @@
 - **Visual**: Dark clinical UI background, FracNet AI logo, architectural diagram badge, live Cloud Run status badge.
 - **Header**: FracNet AI — Automated Bone Fracture Triage System
 - **Subtitle**: End-to-End MLOps Pipeline, Reliable Serving, and Engineered Failure Defense
-- **Team**: Sahatsawat Nitjaphant (6688249) · Ongsa Raksalam (6688093) · Thanadon Yindeesuk (6688152)
+- **Team**: Sahatsawat Nitjaphant (6688249) · Ongsa Raksalam (6688093) · Xinyi Chen (6688232)
 - **Course**: ITCS355 Machine Learning Operation and Deployment
 - **Bullets**:
   - Production-ready musculoskeletal radiograph triage service.
   - Strict 3-layer portability architecture with 0 cloud SDK leakage.
   - Scale-to-zero serverless deployment on Google Cloud Run.
   - Explainable AI with Grad-CAM visual fracture localization.
-- **Speaker Notes (0:00 – 0:30, Thanadon)**:
+- **Speaker Notes (0:00 – 0:30, Xinyi)**:
   > *"Good morning instructor and classmates. We are Team FracNet AI. Today we present our end-to-end MLOps Capstone system for automated bone fracture triage. Our goal was not just to train a neural network, but to build an operationally complete, portable, and failure-resilient cloud service that clinicians can actually trust."*
 
 ---
@@ -31,7 +31,7 @@
   - **Asymmetric Risk**: A false negative (missing a hairline fracture) leads to bone malunion, disability, and malpractice risk.
   - **Data Reality**: FracAtlas dataset contains 4,083 images with severe 4.7:1 class imbalance (only 17.5% fractures).
   - **Operational Requirement**: We need high recall triage, strict latency under 500 ms, zero crashes on corrupt inputs, and visual explainability.
-- **Speaker Notes (0:30 – 1:15, Thanadon)**:
+- **Speaker Notes (0:30 – 1:15, Xinyi)**:
   > *"In an emergency room, radiologist queues can take hours. Missing a fracture causes lifelong patient disability. However, existing academic AI implementations fail in practice: when hospital networks drop packets, models either crash or emit high-confidence garbage. Our system solves this by combining high-recall triage with robust input validation, ensuring clean and corrupted scans are handled safely."*
 
 ---
@@ -60,7 +60,7 @@
     - *ModelFinal*: EfficientNet-B0 compound scaled (Val Loss: 0.315, Test AUC: 0.913).
   - **Automated Verification**: `make verify` guarantees claimed metrics in README match actual test evaluations ($\Delta = 0.0000$).
   - **Deployment Gate**: `make gate` halts CD if candidate AUC falls below the 0.8500 quality floor.
-- **Speaker Notes (2:15 – 3:15, Thanadon)**:
+- **Speaker Notes (2:15 – 3:15, Xinyi)**:
   > *"Every artifact is fully tracked in MLflow. We don't just commit weights; we record the exact Git commit, dataset fingerprint, and container digest. We trained three iterations, ultimately selecting EfficientNet-B0 for its compound scaling. Most importantly, our claimed metrics are completely honest: running 'make verify' programmatically proves our claimed AUC of 0.9130 matches ground truth with zero discrepancy, passing our automated 0.85 evaluation gate."*
 
 ---
@@ -107,7 +107,7 @@
     3. *Neural Processing*: Robust PyTorch forward pass.
     4. *Confidence Triage Gate*: Conf $< 0.60 \rightarrow$ flags `"uncertain": true` for human review.
   - **Live Injection Demo**: 7 invalid inputs safely rejected; 2 out-of-distribution inputs flagged as uncertain; **0 crashes**.
-- **Speaker Notes (5:30 – 6:45, Thanadon)**:
+- **Speaker Notes (5:30 – 6:45, Xinyi)**:
   > *"The differentiator in our capstone is our deliberate engineered failure. We simulated a malfunctioning PACS feed injecting 13 different attack vectors: dead detector frames, truncated byte streams, and corrupted files. Instead of crashing with a 500 error, our 4-layer defense chain intercepts them. We calculate Shannon entropy on pixel distributions: if a dead detector sends an all-black frame with entropy under 1.0, it is immediately rejected with HTTP 422. Non-medical images are flagged as uncertain, ensuring clinicians are never misled."*
 
 ---
@@ -124,7 +124,7 @@
     5. Statistical drift scores.
   - **Drift Algorithms**: Population Stability Index (PSI) and Kolmogorov-Smirnov test comparing real-time inference vs validation baseline.
   - **Cooldown Deduplication**: 15-minute alert cooldown prevents alarm fatigue during continuous incidents.
-- **Speaker Notes (6:45 – 7:15, Thanadon)**:
+- **Speaker Notes (6:45 – 7:15, Xinyi)**:
   > *"Our service tracks real-time operations through Prometheus-compatible endpoints. We monitor latency SLOs and statistical drift using Population Stability Index and KS tests. If image distribution drifts, an alert triggers. Furthermore, our AlertManager implements a 15-minute cooldown deduplication window so on-call engineers aren't flooded with duplicate alerts."*
 
 ---

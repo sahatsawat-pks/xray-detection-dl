@@ -329,4 +329,4 @@ make cost-report       # Print cost estimate
 |---|---|---|
 | 6688249 | Sahatsawat Nitjaphant | MLOps infra: Makefile, Docker, DVC, MLflow, CI/CD, cloud adapter, monitoring |
 | 6688093 | Ongsa Raksalam | ML pipeline: training, evaluation, experiment tracking, model registry |
-| 6688152 | Thanadon Yindeesuk | Serving & reliability: FastAPI, load testing, failure engineering, tests |
+| 6688232 | Xinyi Chen | Serving & reliability: FastAPI, load testing, failure engineering, tests |

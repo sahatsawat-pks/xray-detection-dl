@@ -5,7 +5,7 @@
 **Team Members**:
 - Sahatsawat Nitjaphant (6688249) — *DevOps, Cloud Infrastructure, CI/CD, Workload Identity Federation*
 - Ongsa Raksalam (6688093) — *FastAPI Serving, Web Dashboard, Explainability (Grad-CAM), Portability*
-- Thanadon Yindeesuk (6688152) — *ML Pipeline, MLflow Lineage, Drift Monitoring, Failure Engineering*
+- Xinyi Chen (6688232) — *ML Pipeline, MLflow Lineage, Drift Monitoring, Failure Engineering*
 
 **Academic Year**: 2026 · Senior Year · AI Minor Specialization  
 **Instructor / Course**: ITCS355 Machine Learning Operation and Deployment  

@@ -15,7 +15,7 @@
 | **Input** | Single X-ray image (JPEG/PNG), resized to 224×224 |
 | **Output** | Class label, confidence score, fracture probability |
 | **Training date** | September 2026 |
-| **Developed by** | Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Thanadon Yindeesuk (6688152) |
+| **Developed by** | Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Xinyi Chen (6688232) |
 | **Course** | ITCS355 — Machine Learning Operation and Deployment |
 
 ## Intended Use

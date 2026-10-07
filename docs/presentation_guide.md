@@ -1,7 +1,7 @@
 # ITCS355 Capstone — Presentation & Defense Guide (15 Marks)
 
 > **Format**: 8-minute presentation + 5-minute defense / live Q&A.  
-> **Team**: Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Thanadon Yindeesuk (6688152).  
+> **Team**: Sahatsawat Nitjaphant (6688249), Ongsa Raksalam (6688093), Xinyi Chen (6688232).  
 > **Grading Focus**: The operational system, reliability, failure handling, and costs. **Do not spend time on model selection — nobody is grading it.**
 
 ---
@@ -10,10 +10,10 @@
 
 | Section | Time | Speaker | Content / Visual |
 |---|---|---|---|
-| **1. The Problem in 60s** | 0:00 – 1:00 | Thanadon | Emergency room X-ray triage bottleneck; 4.7:1 class imbalance; high-recall requirement (false negative is fatal). |
+| **1. The Problem in 60s** | 0:00 – 1:00 | Xinyi | Emergency room X-ray triage bottleneck; 4.7:1 class imbalance; high-recall requirement (false negative is fatal). |
 | **2. Architecture Contract** | 1:00 – 2:30 | Sahatsawat | 3-layer architecture (`src/` neutral, `cloudlayer/` adapter, `service/` FastAPI). Show `make portability-audit` output. |
 | **3. Live Service Demo** | 2:30 – 5:00 | Ongsa | Start `make serve`, show Swagger UI at `/docs`, execute `/health` and `/ready`, run a valid X-ray prediction. Show `/metrics` & `/slo`. |
-| **4. Engineered Failure Mode** | 5:00 – 7:00 | Thanadon | The Corrupted PACS Injection scenario; run `python scripts/inject_failure.py`; demonstrate 4-layer protection chain & alert firing. |
+| **4. Engineered Failure Mode** | 5:00 – 7:00 | Xinyi | The Corrupted PACS Injection scenario; run `python scripts/inject_failure.py`; demonstrate 4-layer protection chain & alert firing. |
 | **5. Cost & What Another Week Buys** | 7:00 – 8:00 | Sahatsawat | ~0.19 THB per 1k predictions, 340 THB/term vs 800 THB budget; roadmap for next sprint. |
 
 ---
