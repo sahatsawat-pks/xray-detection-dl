@@ -37,7 +37,9 @@
 ---
 
 ## Slide 3: 3-Layer Architecture & Portability Audit
-- **Visual**: Clear 3-tier architectural diagram highlighting Layer 1 (`src/`), Layer 2 (`cloudlayer/`), and Layer 3 (`service/`). Terminal screenshot showing `make portability-audit` passing with 0 cloud references.
+- **Visual**: Architectural diagram (`mermaid-diagram.svg`) highlighting Layer 1 (`src/`), Layer 2 (`cloudlayer/`), and Layer 3 (`service/`). Terminal screenshot showing `make portability-audit` passing with 0 cloud references.
+  
+  ![Three-Layer Architecture Diagram](mermaid-diagram.svg)
 - **Header**: The Three-Layer Software Engineering Contract
 - **Bullets**:
   - **Layer 1 (`src/`)**: Pure PyTorch ML logic, preprocessing, and MLflow lineage tracking. **Zero cloud provider SDKs.**

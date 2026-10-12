@@ -172,48 +172,68 @@
     </div>
 
     <!-- SLIDE 3: 3-Layer Architecture -->
-    <div class="slide flex-col justify-center space-y-6 w-full" data-title="3-Layer Architecture" data-speaker="Sahatsawat" data-time="1:15 - 2:15">
-      <div class="border-b border-slate-800 pb-3 flex items-center justify-between">
+    <div class="slide flex-col justify-center space-y-4 w-full" data-title="3-Layer Architecture" data-speaker="Sahatsawat" data-time="1:15 - 2:15">
+      <div class="border-b border-slate-800 pb-2.5 flex items-center justify-between">
         <h2 class="text-2xl font-bold text-white tracking-tight">2. Three-Layer Software Engineering Contract</h2>
         <span class="text-xs text-indigo-400 mono">Zero Cloud SDK Leakage</span>
       </div>
-      <div class="grid grid-cols-3 gap-4">
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-          <div class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Layer 1: src/</div>
-          <p class="text-xs text-slate-400 font-medium">Provider-Neutral ML Core</p>
-          <ul class="text-xs text-slate-300 space-y-2">
-            <li>• Pure PyTorch architectures</li>
-            <li>• Preprocessing & transforms</li>
-            <li>• MLflow lineage tracking</li>
-            <li>• <strong>0 Cloud SDK imports</strong></li>
-          </ul>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        <!-- Left: 3-Layer Specs & Audit (7 cols) -->
+        <div class="lg:col-span-7 flex flex-col justify-between space-y-3">
+          <div class="grid grid-cols-3 gap-3">
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 space-y-1.5">
+              <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">Layer 1: src/</div>
+              <p class="text-[11px] text-slate-400 font-medium">Provider-Neutral ML Core</p>
+              <ul class="text-[11px] text-slate-300 space-y-1">
+                <li>• Pure PyTorch logic</li>
+                <li>• Preprocessing & transforms</li>
+                <li>• MLflow lineage tracking</li>
+                <li>• <strong>0 Cloud SDK imports</strong></li>
+              </ul>
+            </div>
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 space-y-1.5">
+              <div class="text-[11px] font-bold text-cyan-400 uppercase tracking-wider">Layer 2: cloudlayer/</div>
+              <p class="text-[11px] text-slate-400 font-medium">Cloud Adapter Interface</p>
+              <ul class="text-[11px] text-slate-300 space-y-1">
+                <li>• Abstract `CloudAdapter` ABC</li>
+                <li>• 11 provider-neutral methods</li>
+                <li>• `cloudlayer/gcp.py` (GCS, AR)</li>
+                <li>• <strong>Only place with cloud SDKs</strong></li>
+              </ul>
+            </div>
+            <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-3.5 space-y-1.5">
+              <div class="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">Layer 3: service/</div>
+              <p class="text-[11px] text-slate-400 font-medium">Serving & Client</p>
+              <ul class="text-[11px] text-slate-300 space-y-1">
+                <li>• FastAPI online serving</li>
+                <li>• Decoupled `/health` & `/ready`</li>
+                <li>• Real-time Grad-CAM generator</li>
+                <li>• Clinical dark-mode web app</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-3 rounded-xl border border-slate-800 mono text-xs text-emerald-400">
+            $ make portability-audit<br>
+            === Portability Audit ===<br>
+            Scanning src/ and tests/ for cloud-specific strings...<br>
+            ✅ PASS — No cloud-specific strings found in src/ or tests/
+          </div>
         </div>
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-          <div class="text-xs font-semibold text-cyan-400 uppercase tracking-wider">Layer 2: cloudlayer/</div>
-          <p class="text-xs text-slate-400 font-medium">Cloud Adapter Interface</p>
-          <ul class="text-xs text-slate-300 space-y-2">
-            <li>• Abstract `CloudAdapter` ABC</li>
-            <li>• 11 provider-neutral methods</li>
-            <li>• `cloudlayer/gcp.py` (GCS, AR)</li>
-            <li>• <strong>Only place with cloud SDKs</strong></li>
-          </ul>
+
+        <!-- Right: Mermaid Architecture Diagram (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-900/70 border border-slate-800 rounded-2xl p-3 flex flex-col items-center justify-center">
+          <div class="w-full flex items-center justify-between pb-1.5 px-1 border-b border-slate-800/80 mb-2">
+            <span class="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
+              <span>📐</span> Architecture Topology
+            </span>
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-950 text-indigo-300 border border-indigo-800/50 mono font-semibold">mermaid-diagram.svg</span>
+          </div>
+          <div class="w-full flex items-center justify-center bg-slate-950/80 rounded-xl p-2 border border-slate-800/60 max-h-[320px] overflow-hidden">
+            <img src="mermaid-diagram.svg" alt="Three-Layer Architecture Diagram" class="max-h-[300px] w-auto object-contain rounded-lg shadow-md">
+          </div>
         </div>
-        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
-          <div class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Layer 3: service/ & web/</div>
-          <p class="text-xs text-slate-400 font-medium">Serving & Client</p>
-          <ul class="text-xs text-slate-300 space-y-2">
-            <li>• FastAPI online serving</li>
-            <li>• Decoupled `/health` & `/ready`</li>
-            <li>• Real-time Grad-CAM generator</li>
-            <li>• Clinical dark-mode web app</li>
-          </ul>
-        </div>
-      </div>
-      <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 mono text-xs text-emerald-400">
-        $ make portability-audit<br>
-        === Portability Audit ===<br>
-        Scanning src/ and tests/ for cloud-specific strings...<br>
-        ✅ PASS — No cloud-specific strings found in src/ or tests/
       </div>
     </div>
 
