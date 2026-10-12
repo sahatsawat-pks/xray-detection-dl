@@ -37,21 +37,34 @@
 ---
 
 ## Slide 3: 3-Layer Architecture & Portability Audit
-- **Visual**: Architectural diagram (`mermaid-diagram.svg`) highlighting Layer 1 (`src/`), Layer 2 (`cloudlayer/`), and Layer 3 (`service/`). Terminal screenshot showing `make portability-audit` passing with 0 cloud references.
-  
-  ![Three-Layer Architecture Diagram](mermaid-diagram.svg)
+- **Visual**: 3-tier contract specification cards (`src/`, `cloudlayer/`, `service/`). Terminal screenshot showing `make portability-audit` passing with 0 cloud references.
 - **Header**: The Three-Layer Software Engineering Contract
 - **Bullets**:
   - **Layer 1 (`src/`)**: Pure PyTorch ML logic, preprocessing, and MLflow lineage tracking. **Zero cloud provider SDKs.**
   - **Layer 2 (`cloudlayer/`)**: Provider-neutral `CloudAdapter` ABC with pluggable implementations (`gcp.py`). The *only* location where cloud SDKs exist.
   - **Layer 3 (`service/` & `web/`)**: FastAPI serving with decoupled `/health` & `/ready` probes, plus modern web client.
   - **Automated Audit**: Enforced via `scripts/portability_audit.sh` across all CI commits.
-- **Speaker Notes (1:15 – 2:15, Sahatsawat)**:
+- **Speaker Notes (1:15 – 1:45, Sahatsawat)**:
   > *"To ensure portability, we strictly separated our code into three distinct layers. Layer 1 contains our model and training code and has zero dependencies on Google Cloud. Layer 2 is our cloud adapter, implementing 11 standard operations. Layer 3 is our FastAPI service. Running 'make portability-audit' proves that not a single AWS, Azure, or GCP SDK is imported in Layer 1 or our test suite. We can swap cloud providers by changing one adapter file."*
 
 ---
 
-## Slide 4: Automated ML Pipeline & Lineage Tracking
+## Slide 4: System Architecture & Topology Diagram
+- **Visual**: Full-screen high-resolution architectural topology diagram (`mermaid-diagram.svg`) illustrating client interaction, probe separation, Layer 1 model inference, and Layer 2 cloud adapters connecting to Google Cloud Run, GCS, and Artifact Registry.
+  
+  ![Three-Layer Architecture Diagram](mermaid-diagram.svg)
+- **Header**: End-to-End System Architecture Topology
+- **Bullets**:
+  - **Client & Serving Boundary**: Web client calls FastAPI REST endpoints (`/health`, `/ready`, `/predict`).
+  - **Isolated Core Execution**: Model loader warms up and evaluates pure PyTorch EfficientNet-B0 without external platform dependencies.
+  - **Pluggable Cloud Boundary**: Cloud adapters connect solely to Cloud Storage and Artifact Registry behind standard abstract interfaces.
+  - **Serverless Hosting**: Container runs in `asia-southeast1` on Google Cloud Run with scale-to-zero autoscaling.
+- **Speaker Notes (1:45 – 2:15, Sahatsawat)**:
+  > *"Here is our complete system topology in action. Notice the absolute separation between layers: user traffic enters through our web client and hits FastAPI in Layer 3. The service calls directly into our Layer 1 PyTorch model for inference and Grad-CAM generation without any cloud SDK calls. Meanwhile, all external cloud operations—like saving model checkpoints to Google Cloud Storage or pulling images from Artifact Registry—are strictly encapsulated within Layer 2. This diagram represents the actual deployed topography on Google Cloud Run."*
+
+---
+
+## Slide 5: Automated ML Pipeline & Lineage Tracking
 - **Visual**: MLflow run dashboard screenshot showing logged parameters, artifacts, DVC hash, git SHA, and metric plots. Model progression comparison table.
 - **Header**: Reproducible Training Loop & Honest Metrics
 - **Bullets**:
@@ -67,7 +80,7 @@
 
 ---
 
-## Slide 5: Cloud Deployment & CI/CD Automation
+## Slide 6: Cloud Deployment & CI/CD Automation
 - **Visual**: GitHub Actions pipeline diagram (Lint $\rightarrow$ Audit $\rightarrow$ Pytest $\rightarrow$ Build $\rightarrow$ WIF Auth $\rightarrow$ Artifact Registry $\rightarrow$ Cloud Run $\rightarrow$ Smoke Test). WIF diagram showing passwordless token exchange.
 - **Header**: Zero-Secret CI/CD to Serverless Cloud Run
 - **Bullets**:
@@ -83,7 +96,7 @@
 
 ---
 
-## Slide 6: Live System Demo & Explainability
+## Slide 7: Live System Demo & Explainability
 - **Visual**: Split screen: Left side shows live Web Dashboard with drag-and-drop X-ray and Grad-CAM heatmap toggle; Right side shows terminal running `curl` and Swagger UI at `/docs`.
 - **Header**: Live Serving & Grad-CAM Fracture Localization
 - **Bullets**:
@@ -98,7 +111,7 @@
 
 ---
 
-## Slide 7: Engineered Failure Defense (Faulty PACS)
+## Slide 8: Engineered Failure Defense (Faulty PACS)
 - **Visual**: 4-Layer Defense Chain flowchart. Terminal output of `scripts/inject_failure.py` showing rejected vs accepted attacks. Formula of Shannon Entropy.
 - **Header**: Engineered Failure Mode: Corrupted PACS Injection
 - **Bullets**:
@@ -114,7 +127,7 @@
 
 ---
 
-## Slide 8: Observability, Metrics & Drift Alerting
+## Slide 9: Observability, Metrics & Drift Alerting
 - **Visual**: Telemetry dashboard showing rolling request rate, p95 latency, error rate, and PSI distribution chart. AlertManager cooldown notification flow.
 - **Header**: Real-Time Telemetry & Cooldown Alerting
 - **Bullets**:
@@ -131,7 +144,7 @@
 
 ---
 
-## Slide 9: FinOps Cost Report & Budget Breakdown
+## Slide 10: FinOps Cost Report & Budget Breakdown
 - **Visual**: GCP cost breakdown donut chart and monthly projection table comparing actual spend (~340 THB) against the 800 THB budget.
 - **Header**: FinOps Cost Report & Budget Discipline
 - **Bullets**:
@@ -148,7 +161,7 @@
 
 ---
 
-## Slide 10: Roadmap & Defense Readiness
+## Slide 11: Roadmap & Defense Readiness
 - **Visual**: Capstone architecture recap with green checkmarks over all 5 rubric criteria. "What Another Week Buys" roadmap list.
 - **Header**: What Another Week Would Buy & Ready for Defense
 - **Bullets**:
